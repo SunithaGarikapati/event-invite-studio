@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Party Invitation & Potluck Hub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800">
+
+  <div class="bg-indigo-600 text-white py-10 px-4 text-center shadow-lg">
+    <h1 class="text-4xl font-extrabold tracking-tight">🎉 You're Invited to the Party!</h1>
+    <p class="mt-2 text-indigo-100 text-lg">Upload your Excel planning sheet to generate your party web page</p>
+  </div>
+
+  <div class="max-w-4xl mx-auto p-6">
+    
+    <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200 mb-8 text-center">
+      <h2 class="text-xl font-bold mb-3 text-slate-700">Import Party Planning Spreadsheet</h2>
+      <p class="text-sm text-slate-500 mb-4">Select an <code>.xlsx</code> or <code>.csv</code> file with columns: <b>Guest Name</b>, <b>Dish</b>, <b>Category</b>, <b>Dietary</b>.</p>
+      <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"/>
+    </div>
+
+    <div id="dashboard" class="hidden grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div class="bg-white p-5 rounded-lg border border-slate-200 text-center shadow-sm">
+        <span class="text-xs font-bold uppercase text-slate-400">Total Confirmed Guests</span>
+        <div id="totalGuests" class="text-3xl font-extrabold text-indigo-600 mt-1">0</div>
+      </div>
+      <div class="bg-white p-5 rounded-lg border border-slate-200 text-center shadow-sm">
+        <span class="text-xs font-bold uppercase text-slate-400">Total Dishes Committed</span>
+        <div id="totalDishes" class="text-3xl font-extrabold text-emerald-600 mt-1">0</div>
+      </div>
+      <div class="bg-white p-5 rounded-lg border border-slate-200 text-center shadow-sm">
+        <span class="text-xs font-bold uppercase text-slate-400">Special Dietary Needs</span>
+        <div id="totalDietary" class="text-3xl font-extrabold text-amber-500 mt-1">0</div>
+      </div>
+    </div>
+
+    <div id="tableContainer" class="hidden bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+      <div class="px-6 py-4 bg-slate-100 border-b border-slate-200">
+        <h3 class="text-lg font-bold text-slate-700">📋 Party Menu & Guest Sign-Ups</h3>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase font-semibold text-slate-500">
+              <th class="py-3 px-4">Guest Name</th>
+              <th class="py-3 px-4">Dish / Item Bringing</th>
+              <th class="py-3 px-4">Category</th>
+              <th class="py-3 px-4">Dietary Tags</th>
+            </tr>
+          </thead>
+          <tbody id="partyTableBody" class="divide-y divide-slate-100 text-sm">
+            </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    document.getElementById('excelFile').addEventListener('change', handleFile, false);
+
+    function handleFile(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const data = new Uint8Array(evt.target.result);
+        const workbook = XLSX.read(data, {type: 'array'});
+        
+        // Read first sheet
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const json = XLSX.utils.sheet_to_json(worksheet);
+
+        renderPartyData(json);
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function renderPartyData(data) {
+      const tbody = document.getElementById('partyTableBody');
+      tbody.innerHTML = '';
+
+      let guestCount = 0;
+      let dishCount = 0;
+      let dietaryCount = 0;
+
+      data.forEach(row => {
+        const name = row['Guest Name'] || row['Name'] || 'Guest';
+        const dish = row['Dish'] || row['Dish Bringing'] || 'TBD';
+        const category = row['Category'] || 'General';
+        const dietary = row['Dietary'] || row['Dietary Restrictions'] || '-';
+
+        if (name) guestCount++;
+        if (dish && dish !== '-') dishCount++;
+        if (dietary && dietary !== '-') dietaryCount++;
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition';
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-semibold text-slate-800">${name}</td>
+          <td class="py-3 px-4 text-slate-600">${dish}</td>
+          <td class="py-3 px-4"><span class="bg-indigo-50 text-indigo-700 text-xs px-2.5 py-1 rounded-full font-medium">${category}</span></td>
+          <td class="py-3 px-4"><span class="bg-amber-50 text-amber-700 text-xs px-2.5 py-1 rounded-full font-medium">${dietary}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Update KPIs
+      document.getElementById('totalGuests').innerText = guestCount;
+      document.getElementById('totalDishes').innerText = dishCount;
+      document.getElementById('totalDietary').innerText = dietaryCount;
+
+      // Unhide sections
+      document.getElementById('dashboard').classList.remove('hidden');
+      document.getElementById('tableContainer').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
